@@ -2,4 +2,3 @@ streamlit
 torch
 transformers
 PyMuPDF
-PyPDF2
