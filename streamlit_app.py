@@ -1,14 +1,18 @@
 import streamlit as st
 from summarizer_module import TextSummarizer
 import time
-import traceback
 import tempfile
 import os
 
-st.set_page_config(page_title="AI Book & Report Summarizer", page_icon="📘", layout="wide")
+st.set_page_config(page_title="📘 AI Book & Report Summarizer", layout="wide")
 
+# Debug log
+print("✅ Streamlit app is starting...")
+
+# Initialize summarizer once
 if 'summarizer' not in st.session_state:
     st.session_state.summarizer = TextSummarizer()
+    print("✅ Summarizer initialized.")
 
 def extract_text_from_txt(txt_file):
     try:
@@ -19,7 +23,7 @@ def extract_text_from_txt(txt_file):
 
 def main():
     st.title("📘 AI Book & Report Summarizer")
-    st.markdown("Summarize large documents — **text, tables, and figures** — using fast transformer models.")
+    st.markdown("Summarize large text documents, PDFs, or content — powered by Transformers.")
 
     try:
         with st.sidebar:
@@ -38,8 +42,7 @@ def main():
         else:
             uploaded_file = st.file_uploader("📂 Upload a PDF or TXT file", type=["pdf", "txt"])
             if uploaded_file:
-                file_size = len(uploaded_file.getbuffer())
-                st.info(f"📄 File size: {file_size / 1024:.2f} KB")
+                st.info(f"📄 File size: {len(uploaded_file.getbuffer()) / 1024:.2f} KB")
 
                 if uploaded_file.type == "text/plain":
                     text_to_summarize = extract_text_from_txt(uploaded_file)
@@ -69,7 +72,7 @@ def main():
                 if text_to_summarize.startswith("__PDF_PATH__"):
                     pdf_path = text_to_summarize.replace("__PDF_PATH__:", "")
                     summary = summarizer.summarize_pdf_with_images(pdf_path, length=summary_length)
-                    os.remove(pdf_path)  # clean up temp file
+                    os.remove(pdf_path)  # clean temp
                 else:
                     summary = summarizer.summarize(text_to_summarize, length=summary_length)
 
@@ -101,4 +104,8 @@ def main():
         st.exception(e)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        st.error("🚨 Streamlit app crashed on startup.")
+        st.exception(e)
