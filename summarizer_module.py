@@ -1,13 +1,8 @@
 import torch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-from typing import List
 import re
-import logging
-import warnings
+from typing import List
 import fitz  # PyMuPDF
-
-warnings.filterwarnings("ignore")
-logging.getLogger("transformers").setLevel(logging.ERROR)
 
 class TextSummarizer:
     def __init__(self, model_name="sshleifer/distilbart-cnn-12-6"):
@@ -82,11 +77,14 @@ class TextSummarizer:
             doc = fitz.open(pdf_path)
             text = ""
             for page in doc:
-                text += page.get_text()
-
+                page_text = page.get_text()
+                if page_text:
+                    text += page_text + "\n"
+            if len(text.strip()) < 50:
+                raise ValueError("PDF appears empty or contains too little text.")
             return self.summarize(text, length)
         except Exception as e:
-            return f"❌ Failed to read PDF: {str(e)}"
+            return f"❌ Failed to read or summarize PDF: {str(e)}"
 
     def get_model_info(self):
         return {
