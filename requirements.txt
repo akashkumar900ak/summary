@@ -1,24 +1,7 @@
-# Core framework
-streamlit>=1.28.0
-
-# Machine Learning and NLP
-torch>=2.0.0
-transformers>=4.30.0
-tokenizers>=0.13.0
-
-# File processing
-PyPDF2>=3.0.0
-
-# Utilities
-pandas>=1.5.0
-numpy>=1.24.0
-
-# For better performance (optional but recommended)
-accelerate>=0.20.0
-
-# Additional dependencies that might be needed
-requests>=2.31.0
-urllib3>=1.26.0
-
-# For deployment optimization
-protobuf>=3.20.0
+streamlit
+torch
+transformers
+PyPDF2
+pytesseract
+Pillow
+PyMuPDF
