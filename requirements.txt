@@ -1,7 +1,5 @@
 streamlit
 torch
 transformers
-PyPDF2
-pytesseract
-Pillow
 PyMuPDF
+PyPDF2
