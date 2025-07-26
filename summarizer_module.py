@@ -5,10 +5,6 @@ import re
 import logging
 import warnings
 import fitz  # PyMuPDF
-import pytesseract
-from PIL import Image
-import io
-import os
 
 warnings.filterwarnings("ignore")
 logging.getLogger("transformers").setLevel(logging.ERROR)
@@ -29,8 +25,7 @@ class TextSummarizer:
         }
 
     def _clean_text(self, text: str) -> str:
-        text = re.sub(r'\s+', ' ', text.strip())
-        return text
+        return re.sub(r'\s+', ' ', text.strip())
 
     def _chunk_text(self, text: str) -> List[str]:
         sentences = re.split(r'(?<=[.!?]) +', text)
@@ -66,11 +61,6 @@ class TextSummarizer:
         )
         return self.tokenizer.decode(summary_ids[0], skip_special_tokens=True)
 
-    def _extract_figures_and_tables(self, text: str) -> str:
-        lines = text.splitlines()
-        figure_lines = [line.strip() for line in lines if re.search(r'\b(Fig\.|Figure|Table|Diagram)\b', line, re.IGNORECASE)]
-        return "\n".join(figure_lines)
-
     def summarize(self, raw_text: str, length: str = "medium") -> str:
         if not raw_text or len(raw_text.strip()) < 50:
             raise ValueError("Input too short for summarization.")
@@ -80,46 +70,23 @@ class TextSummarizer:
         chunks = self._chunk_text(cleaned)
 
         partial_summaries = []
-        for i, chunk in enumerate(chunks):
+        for chunk in chunks:
             summary = self._generate_summary(chunk, config["max_length"], config["min_length"])
             partial_summaries.append(summary)
 
-        if len(partial_summaries) > 1:
-            combined = " ".join(partial_summaries)
-            final_summary = self._generate_summary(combined, config["max_length"], config["min_length"])
-        else:
-            final_summary = partial_summaries[0]
-
-        # Extract figure/table mentions
-        figure_summary = self._extract_figures_and_tables(raw_text)
-
-        return final_summary + ("\n\n📊 Key Figures/Tables:\n" + figure_summary if figure_summary else "")
+        final = " ".join(partial_summaries)
+        return self._generate_summary(final, config["max_length"], config["min_length"]) if len(partial_summaries) > 1 else partial_summaries[0]
 
     def summarize_pdf_with_images(self, pdf_path: str, length: str = "medium") -> str:
-        doc = fitz.open(pdf_path)
-        text = ""
-        image_texts = []
+        try:
+            doc = fitz.open(pdf_path)
+            text = ""
+            for page in doc:
+                text += page.get_text()
 
-        for page_num, page in enumerate(doc):
-            # Extract text
-            text += page.get_text()
-
-            # Extract and OCR images
-            images = page.get_images(full=True)
-            for img_index, img in enumerate(images):
-                xref = img[0]
-                base_image = doc.extract_image(xref)
-                image_bytes = base_image["image"]
-                try:
-                    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-                    ocr_text = pytesseract.image_to_string(image)
-                    if ocr_text.strip():
-                        image_texts.append(f"[Page {page_num+1} - Image {img_index+1}]\n{ocr_text.strip()}")
-                except Exception as e:
-                    continue
-
-        full_text = text + "\n".join(image_texts)
-        return self.summarize(full_text, length)
+            return self.summarize(text, length)
+        except Exception as e:
+            return f"❌ Failed to read PDF: {str(e)}"
 
     def get_model_info(self):
         return {
@@ -128,12 +95,3 @@ class TextSummarizer:
             "max_input_length": self.max_input_tokens,
             "available_lengths": list(self.length_configs.keys())
         }
-
-# 🔎 Optional: Run test directly
-if __name__ == "__main__":
-    sample_text = """
-    Artificial Intelligence is shaping the future. This book covers chapters on vision, language, and robotics.
-    Figure 1.2 illustrates how transformers process sequences. Table 3 shows performance across datasets.
-    """
-    summarizer = TextSummarizer()
-    print("Text Summary:\n", summarizer.summarize(sample_text, length="medium"))
