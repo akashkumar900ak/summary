@@ -1,8 +1,8 @@
 import torch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 import re
-from typing import List
 import fitz  # PyMuPDF
+from typing import List
 
 class TextSummarizer:
     def __init__(self, model_name="sshleifer/distilbart-cnn-12-6"):
@@ -72,24 +72,15 @@ class TextSummarizer:
         final = " ".join(partial_summaries)
         return self._generate_summary(final, config["max_length"], config["min_length"]) if len(partial_summaries) > 1 else partial_summaries[0]
 
-    def summarize_pdf_with_images(self, pdf_path: str, length: str = "medium") -> str:
-        try:
-            doc = fitz.open(pdf_path)
-            text = ""
-            for page in doc:
-                page_text = page.get_text()
-                if page_text:
-                    text += page_text + "\n"
-            if len(text.strip()) < 50:
-                raise ValueError("PDF appears empty or contains too little text.")
-            return self.summarize(text, length)
-        except Exception as e:
-            return f"❌ Failed to read or summarize PDF: {str(e)}"
-
-    def get_model_info(self):
-        return {
-            "model_name": self.model_name,
-            "device": str(self.device),
-            "max_input_length": self.max_input_tokens,
-            "available_lengths": list(self.length_configs.keys())
-        }
+# ✅ Standalone helper function for streamlit_app
+def extract_text_from_pdf(pdf_path: str) -> str:
+    try:
+        doc = fitz.open(pdf_path)
+        all_text = ""
+        for page in doc:
+            page_text = page.get_text("text")
+            all_text += page_text + "\n"
+        return all_text.strip()
+    except Exception as e:
+        print(f"❌ PDF extraction error: {str(e)}")
+        return ""
