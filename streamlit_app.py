@@ -1,12 +1,11 @@
 import streamlit as st
-from summarizer_module import TextSummarizer
+from summarizer_module import TextSummarizer, extract_text_from_pdf
 import time
 import tempfile
 import os
 
 st.set_page_config(page_title="📘 AI Book & Report Summarizer", layout="wide")
 
-# Debug log
 print("✅ Streamlit app is starting...")
 
 # Initialize summarizer once
@@ -23,7 +22,7 @@ def extract_text_from_txt(txt_file):
 
 def main():
     st.title("📘 AI Book & Report Summarizer")
-    st.markdown("Summarize large text documents, PDFs, or content — powered by Transformers.")
+    st.markdown("Summarize large text documents, PDFs, or pasted content — powered by Transformers.")
 
     try:
         with st.sidebar:
@@ -51,8 +50,17 @@ def main():
                     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
                         tmp_file.write(uploaded_file.getbuffer())
                         tmp_path = tmp_file.name
-                    st.success("✅ PDF loaded.")
-                    text_to_summarize = f"__PDF_PATH__:{tmp_path}"
+                    st.success("✅ PDF uploaded. Extracting text...")
+
+                    extracted_text = extract_text_from_pdf(tmp_path)
+                    print(f"🧾 Extracted {len(extracted_text)} characters from PDF.")
+
+                    if len(extracted_text.strip()) < 50:
+                        st.error("❌ The PDF was read, but it contains less than 50 readable characters. Is it scanned or image-only?")
+                        return
+
+                    text_to_summarize = extracted_text
+                    os.remove(tmp_path)
 
         if st.button("🚀 Generate Summary"):
             if not text_to_summarize or len(text_to_summarize.strip()) < 50:
@@ -68,14 +76,7 @@ def main():
                     progress.progress(i + 1)
 
                 start = time.time()
-
-                if text_to_summarize.startswith("__PDF_PATH__"):
-                    pdf_path = text_to_summarize.replace("__PDF_PATH__:", "")
-                    summary = summarizer.summarize_pdf_with_images(pdf_path, length=summary_length)
-                    os.remove(pdf_path)  # clean temp
-                else:
-                    summary = summarizer.summarize(text_to_summarize, length=summary_length)
-
+                summary = summarizer.summarize(text_to_summarize, length=summary_length)
                 end = time.time()
                 progress.empty()
 
