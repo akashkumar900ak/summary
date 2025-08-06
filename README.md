@@ -28,3 +28,6 @@ An open-source, free-to-use Streamlit web app that automatically summarizes news
 
 ---
 
+
+
+try it :- https://summary-fjewpzf44gvtxu5kb2dfec.streamlit.app/
